@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>ARYON - جستجوگر پیشرفته</title>
+    
+    <!-- فونت Vazirmatn با لود سریع -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet"></noscript>
+    
+    <style>
+        /* ===== ریست و پایه ===== */
+        *{margin:0;padding:0;box-sizing:border-box}
+        html,body{width:100%;height:100%;overflow:hidden}
+        body{font-family:'Vazirmatn','Segoe UI',Tahoma,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);background-size:400% 400%;animation:gradientShift 15s ease infinite;display:flex;flex-direction:column;color:#333;position:relative;overflow:hidden}
+        @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+        
+        /* ===== پارتیکل با کارایی بالا ===== */
+        #particlesCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;will-change:transform}
+        
+        /* ===== تم‌ها ===== */
+        body.dark-mode{background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);background-size:400% 400%;animation:gradientShift 15s ease infinite;color:#e0e0e0}
+        body.cyberpunk{background:#0a0a0a!important;animation:none!important}
+        body.cyberpunk .logo span{color:#00ff41!important;text-shadow:0 0 20px rgba(0,255,65,.5)}
+        body.cyberpunk .search-box{background:rgba(10,10,10,.9)!important;border:2px solid #00ff41!important;box-shadow:0 0 30px rgba(0,255,65,.2)!important}
+        body.cyberpunk .search-box input{color:#00ff41!important}
+        body.cyberpunk .search-box input::placeholder{color:rgba(0,255,65,.5)}
+        body.cyberpunk .glass{background:rgba(0,0,0,.8)!important;border:1px solid #00ff41!important}
+        body.cyberpunk .result-item{background:rgba(0,0,0,.8)!important;border-right:4px solid #00ff41!important}
+        body.cyberpunk .result-item h3{color:#00ff41!important}
+        body.glass-mode{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)!important;background-size:400% 400%!important;animation:gradientShift 15s ease infinite!important}
+        body.glass-mode .glass{background:rgba(255,255,255,.12)!important;backdrop-filter:blur(20px)!important;border:1px solid rgba(255,255,255,.2)!important;box-shadow:0 8px 32px rgba(0,0,0,.15)!important}
+        body.glass-mode .home .search-box{background:rgba(255,255,255,.15)!important;backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.25)}
+        body.neon-mode{background:#0a0a0a!important;animation:none!important}
+        body.neon-mode .logo span{color:#ff00ff!important;text-shadow:0 0 20px rgba(255,0,255,.5),0 0 60px rgba(255,0,255,.3)}
+        body.neon-mode .search-box{background:rgba(10,10,10,.9)!important;border:2px solid #ff00ff!important;box-shadow:0 0 30px rgba(255,0,255,.2)!important}
+        body.neon-mode .result-item{background:rgba(10,10,10,.9)!important;border-right:4px solid #ff00ff!important}
+        body.neon-mode .result-item h3{color:#ff00ff!important}
+        body.party-mode .logo span{animation:partyColors .3s ease infinite alternate!important}
+        @keyframes partyColors{0%{color:#f00;text-shadow:0 0 20px #f00}25%{color:#0f0;text-shadow:0 0 20px #0f0}50%{color:#00f;text-shadow:0 0 20px #00f}75%{color:#ff0;text-shadow:0 0 20px #ff0}100%{color:#f0f;text-shadow:0 0 20px #f0f}}
+        body.focus-mode .home>*:not(.search-container):not(#particlesCanvas){opacity:.15;pointer-events:none;transition:.5s}
+        body.focus-mode .home .search-container{transform:scale(1.1);transition:.5s cubic-bezier(.34,1.56,.64,1)}
+        
+        /* ===== کامپوننت‌ها ===== */
+        .glass{background:rgba(255,255,255,.12);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.2);border-radius:24px;box-shadow:0 8px 32px rgba(0,0,0,.1);transition:all .3s cubic-bezier(.34,1.56,.64,1);will-change:transform}
+        .glass:hover{transform:translateY(-3px) scale(1.01);box-shadow:0 12px 40px rgba(0,0,0,.15)}
+        body.dark-mode .glass{background:rgba(0,0,0,.3);border-color:rgba(255,255,255,.05)}
+        
+        /* ===== هدر ===== */
+        .header{background:rgba(255,255,255,.85);backdrop-filter:blur(20px);padding:4px 10px;display:none;align-items:center;gap:6px;border-bottom:1px solid rgba(255,255,255,.2);flex-shrink:0;z-index:100;min-height:48px;transition:all .3s;position:sticky;top:0;flex-wrap:wrap;width:100%}
+        body.dark-mode .header{background:rgba(30,30,30,.85);border-bottom-color:rgba(255,255,255,.05)}
+        .header.show{display:flex}
+        .header .logo-small{font-size:20px;font-weight:900;letter-spacing:-1px;cursor:pointer;user-select:none;white-space:nowrap;transition:all .3s;animation:float 3s ease-in-out infinite;background:linear-gradient(135deg,#4285f4,#ea4335,#fbbc05,#34a853);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .header .logo-small:hover{transform:scale(1.1) rotate(-5deg)}
+        body.dark-mode .header .logo-small{background:linear-gradient(135deg,#6ea8fe,#ff6b6b,#ffd93d,#51cf66);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        .header .search-box{flex:1;display:flex;align-items:center;background:rgba(255,255,255,.9);border:1px solid rgba(0,0,0,.1);border-radius:18px;padding:0 10px;transition:all .3s;min-width:100px;max-width:100%;position:relative}
+        body.dark-mode .header .search-box{background:rgba(45,45,45,.9);border-color:rgba(255,255,255,.05)}
+        .header .search-box:focus-within{border-color:#4285f4;box-shadow:0 0 20px rgba(66,133,244,.2);transform:scale(1.02)}
+        .header .search-box input{flex:1;border:none;padding:5px 4px;font-size:12px;background:transparent;outline:none;font-family:inherit;color:inherit;min-width:40px}
+        .header .search-box button{background:transparent;border:none;color:#4285f4;font-size:14px;cursor:pointer;padding:3px 5px;transition:all .3s}
+        .header .search-box button:hover{transform:scale(1.2) rotate(10deg)}
+        .header .engine-selector{display:flex;gap:3px;font-size:10px;flex-wrap:wrap;align-items:center}
+        .header .engine-selector label{display:flex;align-items:center;gap:2px;cursor:pointer;color:#5f6368;padding:2px 6px;border-radius:14px;transition:all .3s;font-size:9px;white-space:nowrap;font-weight:500}
+        body.dark-mode .header .engine-selector label{color:#aaa}
+        .header .engine-selector label:hover{background:rgba(0,0,0,.05);transform:translateY(-2px)}
+        body.dark-mode .header .engine-selector label:hover{background:rgba(255,255,255,.05)}
+        .header .engine-selector input[type="radio"]{accent-color:#4285f4;margin:0;width:10px;height:10px}
+        .header .engine-selector label.active{background:rgba(66,133,244,.15);color:#1a73e8}
+        body.dark-mode .header .engine-selector label.active{background:rgba(66,133,244,.2);color:#6ea8fe}
+        .header-actions{display:flex;gap:3px;align-items:center}
+        .theme-toggle,.settings-btn,.back-btn{background:transparent;border:none;font-size:16px;cursor:pointer;padding:3px 5px;border-radius:50%;transition:all .3s;color:#5f6368}
+        .theme-toggle:hover{background:rgba(0,0,0,.05);transform:rotate(180deg)}
+        .settings-btn:hover{background:rgba(0,0,0,.05);transform:rotate(90deg)}
+        .back-btn:hover{background:rgba(0,0,0,.05);transform:scale(1.1)}
+        body.dark-mode .theme-toggle,body.dark-mode .settings-btn,body.dark-mode .back-btn{color:#aaa}
+        body.dark-mode .theme-toggle:hover,body.dark-mode .settings-btn:hover,body.dark-mode .back-btn:hover{background:rgba(255,255,255,.05)}
+        
+        /* ===== تنظیمات ===== */
+        .settings-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);display:none;justify-content:center;align-items:center;z-index:2000;padding:20px}
+        .settings-modal.show{display:flex}
+        .settings-modal .modal-content{background:rgba(255,255,255,.95);backdrop-filter:blur(20px);padding:25px;border-radius:24px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.2)}
+        body.dark-mode .settings-modal .modal-content{background:rgba(45,45,45,.95)}
+        .settings-modal h2{margin-bottom:20px;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        body.dark-mode .settings-modal h2{background:linear-gradient(135deg,#6ea8fe,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .settings-modal .setting-group{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid rgba(0,0,0,.05)}
+        body.dark-mode .settings-modal .setting-group{border-bottom-color:rgba(255,255,255,.05)}
+        .settings-modal .setting-group label{display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 0;transition:all .3s}
+        .settings-modal .setting-group label:hover{transform:translateX(-5px)}
+        .settings-modal .setting-group input[type="checkbox"]{width:18px;height:18px;accent-color:#4285f4}
+        .settings-modal .close-btn{background:rgba(0,0,0,.05);border:none;padding:10px 24px;border-radius:12px;cursor:pointer;font-size:14px;font-weight:500;transition:all .3s;margin-top:10px}
+        .settings-modal .close-btn:hover{background:rgba(0,0,0,.1);transform:scale(1.05)}
+        body.dark-mode .settings-modal .close-btn{background:rgba(255,255,255,.05);color:#e0e0e0}
+        body.dark-mode .settings-modal .close-btn:hover{background:rgba(255,255,255,.1)}
+        .theme-buttons{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+        .theme-buttons button{padding:5px 14px;border:2px solid transparent;border-radius:20px;cursor:pointer;transition:all .3s;font-size:11px;font-weight:500;background:rgba(0,0,0,.05)}
+        .theme-buttons button:hover{transform:scale(1.05)}
+        .theme-buttons button.active-theme{border-color:#4285f4;background:rgba(66,133,244,.1)}
+        .contact-email{margin-top:15px;padding:10px;background:rgba(66,133,244,.05);border-radius:12px;text-align:center;border:1px solid rgba(66,133,244,.1)}
+        .contact-email a{color:#1a73e8;text-decoration:none;font-weight:600;transition:all .3s}
+        .contact-email a:hover{text-decoration:underline;color:#ea4335}
+        body.dark-mode .contact-email a{color:#6ea8fe}
+        
+        /* ===== صفحه اصلی ===== */
+        .home{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:15px;animation:fadeIn .5s ease;position:relative;z-index:1;min-height:70vh;overflow-y:auto}
+        .home.hidden{display:none}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+        .logo{font-size:clamp(60px,15vw,100px);font-weight:900;letter-spacing:-2px;margin-bottom:5px;user-select:none;animation:logoPop .6s ease,float 4s ease-in-out infinite .6s;text-align:center;line-height:1.1}
+        @keyframes logoPop{0%{transform:scale(.8) rotate(-10deg);opacity:0}60%{transform:scale(1.1) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+        .logo span{display:inline-block;animation:float 3s ease-in-out infinite}
+        .logo span:nth-child(1){color:#4285f4;animation-delay:0s;text-shadow:0 0 30px rgba(66,133,244,.3)}
+        .logo span:nth-child(2){color:#ea4335;animation-delay:.2s;text-shadow:0 0 30px rgba(234,67,53,.3)}
+        .logo span:nth-child(3){color:#fbbc05;animation-delay:.4s;text-shadow:0 0 30px rgba(251,188,5,.3)}
+        .logo span:nth-child(4){color:#34a853;animation-delay:.6s;text-shadow:0 0 30px rgba(52,168,83,.3)}
+        .logo span:nth-child(5){color:#4285f4;animation-delay:.8s;text-shadow:0 0 30px rgba(66,133,244,.3)}
+        body.dark-mode .logo span:nth-child(1),body.dark-mode .logo span:nth-child(5){color:#6ea8fe;text-shadow:0 0 30px rgba(110,168,254,.3)}
+        body.dark-mode .logo span:nth-child(2){color:#ff6b6b;text-shadow:0 0 30px rgba(255,107,107,.3)}
+        body.dark-mode .logo span:nth-child(3){color:#ffd93d;text-shadow:0 0 30px rgba(255,217,61,.3)}
+        body.dark-mode .logo span:nth-child(4){color:#51cf66;text-shadow:0 0 30px rgba(81,207,102,.3)}
+        .subtitle{color:rgba(255,255,255,.9);margin-bottom:15px;font-size:clamp(13px,3vw,16px);text-shadow:0 2px 10px rgba(0,0,0,.2);text-align:center}
+        body.dark-mode .subtitle{color:rgba(255,255,255,.7)}
+        .subtitle .badge{background:rgba(255,255,255,.2);backdrop-filter:blur(10px);color:#fff;padding:2px 12px;border-radius:16px;font-size:10px;font-weight:500;border:1px solid rgba(255,255,255,.2)}
+        .home .search-container{width:min(560px,95%);max-width:100%;position:relative}
+        .home .search-box{display:flex;align-items:center;background:rgba(255,255,255,.9);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.3);border-radius:26px;padding:3px 14px;transition:all .3s;box-shadow:0 8px 32px rgba(0,0,0,.1);position:relative}
+        body.dark-mode .home .search-box{background:rgba(45,45,45,.9);border-color:rgba(255,255,255,.05)}
+        .home .search-box:focus-within{border-color:#4285f4;box-shadow:0 0 30px rgba(66,133,244,.2),0 8px 32px rgba(0,0,0,.1);transform:scale(1.02)}
+        .home .search-box .icon{color:rgba(255,255,255,.7);font-size:16px;margin-left:8px}
+        .home .search-box input{flex:1;border:none;padding:12px 5px;font-size:clamp(14px,4vw,17px);background:transparent;outline:none;font-family:inherit;color:inherit;min-width:50px}
+        .home .search-box input::placeholder{color:rgba(255,255,255,.6)}
+        body.dark-mode .home .search-box input::placeholder{color:rgba(255,255,255,.3)}
+        .home .search-box .voice{color:#4285f4;cursor:pointer;padding:5px;font-size:18px;transition:all .3s;flex-shrink:0}
+        .home .search-box .voice:hover{transform:scale(1.2)}
+        .home .search-box .voice.recording{color:#ea4335;animation:pulse 1s infinite}
+        @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+        .home-suggestions{position:absolute;top:100%;left:0;right:0;background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.2);border-radius:0 0 26px 26px;box-shadow:0 8px 32px rgba(0,0,0,.1);display:none;max-height:250px;overflow-y:auto;z-index:1000}
+        body.dark-mode .home-suggestions{background:rgba(45,45,45,.95);border-color:rgba(255,255,255,.05)}
+        .home-suggestions.show{display:block}
+        .home-suggestions .suggestion-item{padding:10px 16px;cursor:pointer;transition:all .3s;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(0,0,0,.05);font-size:14px}
+        .home-suggestions .suggestion-item:hover{background:rgba(0,0,0,.05);transform:translateX(-5px)}
+        body.dark-mode .home-suggestions .suggestion-item:hover{background:rgba(255,255,255,.05)}
+        .home-suggestions .suggestion-item .category{font-size:10px;background:rgba(66,133,244,.1);padding:2px 10px;border-radius:12px;color:#1a73e8}
+        .home .buttons{margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+        .home .buttons button{padding:9px 20px;border:none;border-radius:12px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);color:#fff;font-size:clamp(12px,3vw,14px);cursor:pointer;transition:all .3s;font-weight:500;border:1px solid rgba(255,255,255,.2);touch-action:manipulation}
+        body.dark-mode .home .buttons button{background:rgba(255,255,255,.05)}
+        .home .buttons button:hover{transform:translateY(-3px) scale(1.05);background:rgba(255,255,255,.25);box-shadow:0 8px 25px rgba(0,0,0,.2)}
+        .home .buttons button:active{transform:scale(.95)}
+        .home .engine-selector{margin-top:14px;display:flex;gap:clamp(6px,2vw,15px);justify-content:center;flex-wrap:wrap}
+        .home .engine-selector label{display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px clamp(12px,3vw,20px);border-radius:30px;transition:all .3s;font-size:clamp(11px,2.5vw,14px);font-weight:500;border:2px solid transparent;background:rgba(255,255,255,.1);backdrop-filter:blur(10px);color:#fff;touch-action:manipulation}
+        body.dark-mode .home .engine-selector label{background:rgba(255,255,255,.05);color:#e0e0e0}
+        .home .engine-selector label:hover{transform:translateY(-3px);background:rgba(255,255,255,.2);box-shadow:0 8px 25px rgba(0,0,0,.1)}
+        body.dark-mode .home .engine-selector label:hover{background:rgba(255,255,255,.1)}
+        .home .engine-selector input[type="radio"]{accent-color:#4285f4;width:14px;height:14px;flex-shrink:0}
+        .home .engine-selector label.active{border-color:#4285f4;background:rgba(66,133,244,.2);box-shadow:0 0 30px rgba(66,133,244,.2)}
+        body.dark-mode .home .engine-selector label.active{border-color:#6ea8fe;background:rgba(66,133,244,.2)}
+        .home .engine-selector label .engine-logo{font-size:clamp(18px,4vw,24px)}
+        .home .engine-selector label .engine-name{font-size:clamp(11px,2vw,13px)}
+        .trending-section{margin-top:16px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:0 10px}
+        .trending-item{display:inline-block;padding:6px clamp(12px,3vw,20px);background:rgba(255,255,255,.1);backdrop-filter:blur(10px);border-radius:30px;color:#fff;cursor:pointer;transition:all .3s;border:1px solid rgba(255,255,255,.2);font-size:clamp(10px,2.5vw,13px);font-weight:500;animation:popIn .5s ease backwards;touch-action:manipulation}
+        .trending-item:nth-child(1){animation-delay:.1s;background:linear-gradient(135deg,#f093fb,#f5576c)}
+        .trending-item:nth-child(2){animation-delay:.2s;background:linear-gradient(135deg,#4facfe,#00f2fe)}
+        .trending-item:nth-child(3){animation-delay:.3s;background:linear-gradient(135deg,#43e97b,#38f9d7)}
+        .trending-item:nth-child(4){animation-delay:.4s;background:linear-gradient(135deg,#fa709a,#fee140)}
+        .trending-item:nth-child(5){animation-delay:.5s;background:linear-gradient(135deg,#a18cd1,#fbc2eb)}
+        .trending-item:hover{transform:scale(1.08) rotate(-2deg);box-shadow:0 8px 30px rgba(0,0,0,.2)}
+        body.dark-mode .trending-item{border-color:rgba(255,255,255,.05)}
+        @keyframes popIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+        .search-history{margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:560px;padding:0 10px}
+        .search-history:empty{display:none}
+        .search-history .history-tag{background:rgba(255,255,255,.1);backdrop-filter:blur(10px);padding:4px 12px;border-radius:16px;font-size:clamp(10px,2vw,12px);color:#fff;cursor:pointer;transition:all .3s;display:flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.1);touch-action:manipulation}
+        body.dark-mode .search-history .history-tag{background:rgba(255,255,255,.05);color:#aaa}
+        .search-history .history-tag:hover{transform:scale(1.05);background:rgba(255,255,255,.2)}
+        body.dark-mode .search-history .history-tag:hover{background:rgba(255,255,255,.1)}
+        .search-history .history-tag .remove{color:#ea4335;cursor:pointer;font-weight:700;transition:all .3s;font-size:14px}
+        .search-history .history-tag .remove:hover{transform:scale(1.3)}
+        .browser-section{margin-top:18px;padding:10px 20px;background:rgba(255,255,255,.1);backdrop-filter:blur(20px);border-radius:50px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .3s;border:1px solid rgba(255,255,255,.2);color:#fff;touch-action:manipulation;flex-wrap:wrap;justify-content:center}
+        body.dark-mode .browser-section{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.05)}
+        .browser-section:hover{transform:scale(1.03);box-shadow:0 8px 30px rgba(0,0,0,.2);border-color:#4285f4}
+        .browser-section .browser-icon{font-size:clamp(24px,5vw,30px)}
+        .browser-section .browser-text{font-size:clamp(11px,2.5vw,14px);font-weight:500}
+        .browser-section .browser-text span{color:#6ea8fe;font-weight:700}
+        
+        /* ===== نتایج ===== */
+        .results-wrapper{display:none;position:fixed;top:0;left:0;width:100%;height:100vh;z-index:50;background:#fff;animation:slideUp .3s ease}
+        .results-wrapper.show{display:block}
+        @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        .results-wrapper iframe{width:100%;height:100%;border:none;background:#fff;display:block}
+        .header.show~.results-wrapper{top:48px;height:calc(100vh - 48px)}
+        body.dark-mode .results-wrapper{background:#1a1a1a}
+        body.dark-mode .results-wrapper iframe{background:#1a1a1a}
+        .aryon-results{display:none;position:fixed;top:48px;left:0;width:100%;height:calc(100vh - 48px);overflow-y:auto;padding:12px 15px;z-index:50;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);animation:slideUp .3s ease}
+        .aryon-results.show{display:block}
+        body.dark-mode .aryon-results{background:rgba(30,30,30,.95)}
+        .aryon-results .result-item{background:rgba(255,255,255,.9);backdrop-filter:blur(20px);padding:12px 16px;margin-bottom:12px;border-radius:16px;border-right:4px solid #4285f4;box-shadow:0 8px 32px rgba(0,0,0,.06);transition:all .3s;border:1px solid rgba(255,255,255,.2)}
+        body.dark-mode .aryon-results .result-item{background:rgba(45,45,45,.9);border-right-color:#6ea8fe;border-color:rgba(255,255,255,.05)}
+        .aryon-results .result-item:hover{transform:translateX(-5px) scale(1.01);box-shadow:0 12px 40px rgba(0,0,0,.1)}
+        .aryon-results .result-item h3{color:#1a73e8;margin-bottom:5px;font-size:clamp(16px,4vw,19px);cursor:pointer;transition:all .3s}
+        body.dark-mode .aryon-results .result-item h3{color:#6ea8fe}
+        .aryon-results .result-item h3:hover{text-decoration:underline;transform:translateX(-3px)}
+        .aryon-results .result-item p{color:#5f6368;font-size:clamp(13px,3vw,15px);line-height:1.6}
+        body.dark-mode .aryon-results .result-item p{color:#aaa}
+        .aryon-results .result-item .url{color:#34a853;font-size:11px;direction:ltr;display:block;margin-top:5px;word-break:break-all}
+        body.dark-mode .aryon-results .result-item .url{color:#51cf66}
+        .aryon-results .result-item .category-tag{display:inline-block;background:rgba(66,133,244,.1);color:#1a73e8;padding:2px 12px;border-radius:12px;font-size:10px;margin-top:8px;border:1px solid rgba(66,133,244,.2)}
+        body.dark-mode .aryon-results .result-item .category-tag{background:rgba(66,133,244,.15);color:#6ea8fe}
+        .aryon-results .result-item .result-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+        .aryon-results .result-item .result-actions button{background:transparent;border:1px solid rgba(0,0,0,.1);padding:4px 12px;border-radius:12px;font-size:11px;cursor:pointer;transition:all .3s;color:#5f6368;touch-action:manipulation}
+        body.dark-mode .aryon-results .result-item .result-actions button{border-color:rgba(255,255,255,.1);color:#aaa}
+        .aryon-results .result-item .result-actions button:hover{background:rgba(0,0,0,.05);transform:scale(1.05)}
+        body.dark-mode .aryon-results .result-item .result-actions button:hover{background:rgba(255,255,255,.05)}
+        .aryon-results .result-count{color:#5f6368;font-size:clamp(12px,2.5vw,14px);margin-bottom:16px;padding:10px 14px;background:rgba(255,255,255,.9);backdrop-filter:blur(20px);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border:1px solid rgba(255,255,255,.2)}
+        body.dark-mode .aryon-results .result-count{color:#aaa;background:rgba(45,45,45,.9);border-color:rgba(255,255,255,.05)}
+        .aryon-results .result-count .filter-buttons{display:flex;gap:4px;flex-wrap:wrap}
+        .aryon-results .result-count .filter-buttons button{background:transparent;border:1px solid rgba(0,0,0,.1);padding:2px 10px;border-radius:12px;font-size:10px;cursor:pointer;transition:all .3s;color:#5f6368;touch-action:manipulation}
+        body.dark-mode .aryon-results .result-count .filter-buttons button{border-color:rgba(255,255,255,.1);color:#aaa}
+        .aryon-results .result-count .filter-buttons button.active{background:rgba(66,133,244,.1);border-color:#4285f4;color:#1a73e8}
+        body.dark-mode .aryon-results .result-count .filter-buttons button.active{background:rgba(66,133,244,.15);border-color:#6ea8fe;color:#6ea8fe}
+        .aryon-results .no-results{text-align:center;padding:40px 20px;color:#5f6368}
+        body.dark-mode .aryon-results .no-results{color:#aaa}
+        .aryon-results .no-results .big-icon{font-size:50px;display:block;margin-bottom:15px}
+        
+        /* ===== دکمه بازگشت به بالا ===== */
+        .back-to-top{position:fixed;bottom:80px;right:20px;background:rgba(66,133,244,.9);backdrop-filter:blur(10px);color:#fff;border:none;border-radius:50%;width:48px;height:48px;font-size:22px;cursor:pointer;transition:all .3s;z-index:200;display:none;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+        .back-to-top:hover{transform:scale(1.1);background:#1a73e8}
+        .back-to-top.show{display:block}
+        body.dark-mode .back-to-top{background:rgba(110,168,254,.9)}
+        body.dark-mode .back-to-top:hover{background:#6ea8fe}
+        
+        /* ===== لودینگ ===== */
+        .loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);backdrop-filter:blur(20px);display:none;justify-content:center;align-items:center;flex-direction:column;z-index:999;padding:20px}
+        .loading-overlay.show{display:flex}
+        .loading-overlay .spinner-container{background:rgba(255,255,255,.95);backdrop-filter:blur(20px);padding:30px 35px;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.2);text-align:center;border:1px solid rgba(255,255,255,.2);max-width:90%}
+        body.dark-mode .loading-overlay .spinner-container{background:rgba(45,45,45,.95);border-color:rgba(255,255,255,.05)}
+        .loading-overlay .spinner{width:45px;height:45px;border:4px solid rgba(0,0,0,.1);border-top:4px solid #4285f4;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 15px}
+        body.dark-mode .loading-overlay .spinner{border-color:rgba(255,255,255,.1);border-top-color:#6ea8fe}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .loading-overlay p{color:#5f6368;font-size:14px;margin:3px 0}
+        body.dark-mode .loading-overlay p{color:#aaa}
+        .loading-overlay .engine-name{color:#1a73e8;font-weight:600}
+        body.dark-mode .loading-overlay .engine-name{color:#6ea8fe}
+        .loading-overlay .loading-bar{width:150px;height:3px;background:rgba(0,0,0,.1);border-radius:10px;margin:12px auto 0;overflow:hidden}
+        body.dark-mode .loading-overlay .loading-bar{background:rgba(255,255,255,.1)}
+        .loading-overlay .loading-bar .fill{height:100%;width:0;background:linear-gradient(90deg,#4285f4,#34a853);border-radius:10px;animation:loadBar 2s ease forwards}
+        @keyframes loadBar{0%{width:0}50%{width:70%}100%{width:100%}}
+        
+        /* ===== کانفتی ===== */
+        .confetti-container{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999}
+        .confetti{position:absolute;width:8px;height:8px;animation:confettiFall 3s linear forwards}
+        @keyframes confettiFall{0%{transform:translateY(-100px) rotate(0);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+        
+        /* ===== فوتر ===== */
+        .footer{background:rgba(0,0,0,.1);backdrop-filter:blur(20px);padding:4px 16px;color:rgba(255,255,255,.7);font-size:clamp(9px,2vw,12px);display:flex;justify-content:space-between;flex-wrap:wrap;gap:3px;border-top:1px solid rgba(255,255,255,.1);flex-shrink:0;transition:all .3s;position:relative;z-index:1}
+        body.dark-mode .footer{background:rgba(0,0,0,.2);border-top-color:rgba(255,255,255,.05);color:rgba(255,255,255,.5)}
+        .footer a{color:rgba(255,255,255,.7);text-decoration:none;margin:0 4px;transition:all .3s}
+        body.dark-mode .footer a{color:rgba(255,255,255,.5)}
+        .footer a:hover{text-decoration:underline;color:#6ea8fe}
+        .footer .version{background:rgba(255,255,255,.1);padding:1px 10px;border-radius:10px;font-size:9px}
+        body.dark-mode .footer .version{background:rgba(255,255,255,.05)}
+        .footer .email-link{color:rgba(255,255,255,.7);transition:all .3s}
+        .footer .email-link:hover{color:#6ea8fe;text-decoration:underline}
+        
+        /* ===== ریسپانسیو ===== */
+        @media(max-width:768px){
+            .header{padding:3px 6px;gap:3px;min-height:42px}
+            .header .logo-small{font-size:16px;order:1}
+            .header .search-box{min-width:100%;order:3;margin-top:2px;border-radius:14px}
+            .header .search-box input{font-size:11px;padding:4px 3px}
+            .header .engine-selector{order:2;gap:2px}
+            .header .engine-selector label{font-size:8px!important;padding:2px 5px!important}
+            .header .engine-selector input[type="radio"]{width:9px;height:9px}
+            .header-actions{order:4;gap:2px}
+            .theme-toggle,.settings-btn,.back-btn{font-size:14px;padding:2px 4px}
+            .header.show~.results-wrapper{top:42px;height:calc(100vh - 42px)}
+            .aryon-results{top:42px;height:calc(100vh - 42px);padding:8px 10px}
+            .home{padding:10px;min-height:60vh}
+            .home .search-box{padding:2px 10px;border-radius:20px}
+            .home .search-box input{padding:10px 4px}
+            .home .search-box .voice{font-size:16px;padding:3px}
+            .home .engine-selector{gap:4px}
+            .home .engine-selector label{padding:4px 10px}
+            .home .engine-selector input[type="radio"]{width:12px;height:12px}
+            .trending-section{gap:4px;margin-top:12px}
+            .search-history{gap:4px;margin-top:8px}
+            .browser-section{padding:8px 14px;margin-top:12px;border-radius:30px}
+            .aryon-results .result-item{padding:10px 12px;margin-bottom:8px}
+            .aryon-results .result-count{padding:8px 12px;flex-direction:column;align-items:stretch;gap:6px}
+            .footer{padding:3px 10px;font-size:8px;flex-direction:column;align-items:center;text-align:center;gap:2px}
+            .footer .version{font-size:7px}
+            .settings-modal .modal-content{padding:18px;margin:10px}
+            .settings-modal h2{font-size:18px}
+            .theme-buttons button{font-size:10px;padding:4px 10px}
+            .back-to-top{bottom:70px;right:15px;width:42px;height:42px;font-size:18px}
+        }
+        @media(max-width:480px){
+            .logo{font-size:45px}
+            .subtitle{font-size:11px}
+            .home .search-box input{font-size:13px;padding:8px 4px}
+            .home .buttons button{padding:6px 12px;font-size:11px}
+            .home .engine-selector label{padding:3px 8px;font-size:10px}
+            .home .engine-selector label .engine-logo{font-size:14px}
+            .home .engine-selector label .engine-name{font-size:9px}
+            .trending-item{font-size:9px;padding:4px 10px}
+            .search-history .history-tag{font-size:9px;padding:3px 8px}
+            .browser-section .browser-text{font-size:10px}
+            .browser-section .browser-icon{font-size:20px}
+            .aryon-results .result-item h3{font-size:14px}
+            .aryon-results .result-item p{font-size:12px}
+            .aryon-results .result-item .result-actions button{font-size:10px;padding:3px 8px}
+            .header.show~.results-wrapper{top:38px;height:calc(100vh - 38px)}
+            .aryon-results{top:38px;height:calc(100vh - 38px)}
+            .back-to-top{bottom:60px;right:10px;width:38px;height:38px;font-size:16px}
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== پارتیکل ===== -->
+    <canvas id="particlesCanvas"></canvas>
+    <!-- ===== کانفتی ===== -->
+    <div class="confetti-container" id="confettiContainer"></div>
+    <!-- ===== لودینگ ===== -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-container glass">
+            <div class="spinner"></div>
+            <p>🔍 جستجو در <span class="engine-name" id="loadingEngine">ARYON</span></p>
+            <p style="font-size:13px;color:#9aa0a6" id="loadingQuery">...</p>
+            <div class="loading-bar"><div class="fill"></div></div>
+        </div>
+    </div>
+    <!-- ===== مودال تنظیمات ===== -->
+    <div class="settings-modal" id="settingsModal">
+        <div class="modal-content glass">
+            <h2>⚙️ تنظیمات ARYON</h2>
+            <div class="setting-group">
+                <h3>🎨 انتخاب تم</h3>
+                <div class="theme-buttons">
+                    <button onclick="setTheme('default')" class="active-theme">🌅 پیش‌فرض</button>
+                    <button onclick="setTheme('dark')">🌙 تاریک</button>
+                    <button onclick="setTheme('cyberpunk')">💚 سایبرپانک</button>
+                    <button onclick="setTheme('glass')">🧊 شیشه‌ای</button>
+                    <button onclick="setTheme('neon')">💜 نئون</button>
+                </div>
+            </div>
+            <div class="setting-group">
+                <h3>🔍 جستجو</h3>
+                <label><input type="checkbox" id="saveHistory" checked> ذخیره تاریخچه جستجو</label>
+                <label><input type="checkbox" id="showSuggestions" checked> نمایش پیشنهادات هنگام تایپ</label>
+                <label><input type="checkbox" id="openInNewTab"> باز کردن نتایج در تب جدید</label>
+            </div>
+            <div class="setting-group">
+                <h3>📊 مدیریت داده</h3>
+                <button onclick="clearHistory()" style="background:linear-gradient(135deg,#f093fb,#f5576c);color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-top:8px;transition:all .3s;touch-action:manipulation">🗑️ پاک کردن تاریخچه</button>
+                <button onclick="exportData()" style="background:linear-gradient(135deg,#4facfe,#00f2fe);color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-top:8px;margin-right:6px;transition:all .3s;touch-action:manipulation">📤 خروجی گرفتن</button>
+                <button onclick="importData()" style="background:linear-gradient(135deg,#43e97b,#38f9d7);color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-top:8px;margin-right:6px;transition:all .3s;touch-action:manipulation">📥 وارد کردن داده</button>
+                <input type="file" id="fileInput" accept=".json" style="display:none" onchange="importDataFromFile(event)">
+            </div>
+            <div class="contact-email">📧 ارتباط با ما: <a href="mailto:aryon.iran@gmail.com">aryon.iran@gmail.com</a></div>
+            <button class="close-btn" onclick="closeSettings()">✖ بستن</button>
+        </div>
+    </div>
+    <!-- ===== دکمه بازگشت به بالا ===== -->
+    <button class="back-to-top" id="backToTop" onclick="scrollToTop()" aria-label="بازگشت به بالا">⬆</button>
+    <!-- ===== هدر ===== -->
+    <div class="header" id="header">
+        <button class="back-btn" id="backHomeBtn" title="بازگشت به صفحه اصلی" aria-label="بازگشت به صفحه اصلی">🏠</button>
+        <div class="logo-small" id="homeBtn" title="بازگشت به صفحه اصلی">ARYON</div>
+        <div class="search-box glass">
+            <input id="headerSearch" type="text" placeholder="جستجو..." aria-label="جستجو در هدر">
+            <button onclick="searchFromHeader()" aria-label="اجرای جستجو">🔍</button>
+        </div>
+        <div class="engine-selector" id="headerEngines" role="radiogroup" aria-label="انتخاب موتور جستجو">
+            <label class="active"><input type="radio" name="engine2" value="google" checked> 🌐 گوگل</label>
+            <label><input type="radio" name="engine2" value="bing"> 🔵 بینگ</label>
+            <label><input type="radio" name="engine2" value="aryon"> 🚀 ARYON</label>
+        </div>
+        <div class="header-actions">
+            <button class="settings-btn" onclick="toggleSettings()" title="تنظیمات" aria-label="تنظیمات">⚙️</button>
+            <button class="theme-toggle" id="themeToggle" title="تغییر تم" aria-label="تغییر تم">🌙</button>
+        </div>
+    </div>
+    <!-- ===== صفحه اصلی ===== -->
+    <div class="home" id="home">
+        <div class="logo"><span>A</span><span>R</span><span>Y</span><span>O</span><span>N</span></div>
+        <div class="subtitle">جستجوگر پیشرفته <span class="badge">⚡ سه موتور</span></div>
+        <div class="search-container">
+            <div class="search-box glass">
+                <span class="icon" aria-hidden="true">🔍</span>
+                <input id="homeSearch" type="text" placeholder="هر چیزی که میخوای جستجو کن..." autofocus aria-label="جستجو">
+                <span class="voice" id="voiceBtn" title="جستجوی صوتی" aria-label="جستجوی صوتی">🎤</span>
+                <div class="home-suggestions" id="homeSuggestions"></div>
+            </div>
+            <div class="engine-selector" id="homeEngines" role="radiogroup" aria-label="انتخاب موتور جستجو">
+                <label class="active"><input type="radio" name="engine1" value="google" checked> <span class="engine-logo" aria-hidden="true">🌐</span><span class="engine-name">گوگل</span></label>
+                <label><input type="radio" name="engine1" value="bing"> <span class="engine-logo" aria-hidden="true">🔵</span><span class="engine-name">بینگ</span></label>
+                <label><input type="radio" name="engine1" value="aryon"> <span class="engine-logo" aria-hidden="true">🚀</span><span class="engine-name">ARYON</span></label>
+            </div>
+            <div class="buttons">
+                <button onclick="searchFromHome()">🔍 جستجو</button>
+                <button onclick="luckySearch()">🎲 خوش‌شانسی!</button>
+            </div>
+        </div>
+        <div class="trending-section">
+            <span class="trending-item" onclick="searchTrending('هوش مصنوعی')">🔥 هوش مصنوعی</span>
+            <span class="trending-item" onclick="searchTrending('برنامه‌نویسی')">💻 برنامه‌نویسی</span>
+            <span class="trending-item" onclick="searchTrending('فضا')">🚀 فضا</span>
+            <span class="trending-item" onclick="searchTrending('رباتیک')">🤖 رباتیک</span>
+            <span class="trending-item" onclick="searchTrending('طراحی وب')">🎨 طراحی وب</span>
+        </div>
+        <div class="search-history" id="searchHistory"></div>
+        <div class="browser-section" id="browserBtn" title="مرورگر اختصاصی ARYON" role="button" tabindex="0">
+            <span class="browser-icon" aria-hidden="true">🧭</span>
+            <span class="browser-text">🌟 <span>مرورگر ARYON</span> — صفحات وب رو اینجا باز کن</span>
+        </div>
+    </div>
+    <!-- ===== نتایج ===== -->
+    <div class="results-wrapper" id="resultsWrapper">
+        <iframe id="resultsFrame" src="about:blank" title="نتایج جستجو"></iframe>
+    </div>
+    <div class="aryon-results" id="aryonResults">
+        <div class="result-count glass" id="aryonResultCount">
+            <span>🔍 نمایش نتایج برای: <strong id="aryonQueryDisplay">...</strong></span>
+            <div class="filter-buttons" id="filterButtons">
+                <button class="active" data-filter="all">همه</button>
+                <button data-filter="آموزش">🎓 آموزش</button>
+                <button data-filter="رسانه">📺 رسانه</button>
+                <button data-filter="خرید">🛒 خرید</button>
+                <button data-filter="ابزار">🔧 ابزار</button>
+                <button data-filter="برنامه‌نویسی">💻 برنامه‌نویسی</button>
+            </div>
+        </div>
+        <div id="aryonResultsList"></div>
+    </div>
+    <!-- ===== فوتر ===== -->
+    <div class="footer">
+        <div><span>🇮🇷 ARYON</span> <a href="#" onclick="toggleSettings();return!1">تنظیمات</a> <a href="#" onclick="clearHistory();return!1">پاک کردن تاریخچه</a> <span class="version">v5.1</span></div>
+        <div><span style="color:rgba(255,255,255,.5)">⚡ ساخته شده توسط آریان</span> <span style="color:rgba(255,255,255,.3);margin-right:8px">|</span> <a href="mailto:aryon.iran@gmail.com" class="email-link">📧 aryon.iran@gmail.com</a></div>
+    </div>
+    
+    <!-- ===== اسکریپت بهینه شده ===== -->
+    <script>
+        "use strict";
+        // ===== دیتابیس ARYON =====
+        const aryonDatabase = [
+            {title:'ARYON - موتور جستجوی پیشرفته',description:'ARYON یک موتور جستجوی پیشرفته با قابلیت جستجو در گوگل، بینگ و موتور داخلی',url:'https://aryon-search.ir',category:'ابزار'},
+            {title:'ویکی‌پدیا - دانشنامه آزاد',description:'ویکی‌پدیا دانشنامه‌ای آزاد با بیش از ۵۰ میلیون مقاله به ۳۰۰ زبان مختلف',url:'https://fa.wikipedia.org',category:'آموزش'},
+            {title:'گیت‌هاب - میزبان کدهای منبع',description:'گیت‌هاب بزرگترین سرویس میزبانی کدهای منبع و همکاری در توسعه نرم‌افزار',url:'https://github.com',category:'برنامه‌نویسی'},
+            {title:'استک‌اورفلو - پرسش و پاسخ برنامه‌نویسی',description:'بزرگترین جامعه پرسش و پاسخ برای برنامه‌نویسان و توسعه‌دهندگان نرم‌افزار',url:'https://stackoverflow.com',category:'برنامه‌نویسی'},
+            {title:'ترجمه گوگل - مترجم آنلاین',description:'سرویس رایگان ترجمه متون، اسناد و وب‌سایت‌ها بین بیش از ۱۰۰ زبان مختلف',url:'https://translate.google.com',category:'ابزار'},
+            {title:'یوتیوب - بزرگترین سرویس اشتراک ویدئو',description:'یوتیوب پلتفرمی برای تماشا، آپلود و به اشتراک‌گذاری ویدئوهای متنوع',url:'https://youtube.com',category:'رسانه'},
+            {title:'کلودفلر - امنیت و بهبود سرعت وب',description:'شبکه تحویل محتوا، امنیت و بهبود عملکرد وب‌سایت‌ها',url:'https://cloudflare.com',category:'زیرساخت'},
+            {title:'ناسا - اکتشافات فضایی',description:'سازمان ملی هوانوردی و فضای آمریکا با پروژه‌های اکتشافی فضایی',url:'https://nasa.gov',category:'علمی'},
+            {title:'تسلا - خودروهای برقی',description:'تسلا پیشرو در تولید خودروهای برقی و انرژی‌های تجدیدپذیر',url:'https://tesla.com',category:'فناوری'},
+            {title:'اسپاتیفای - پخش موسیقی آنلاین',description:'بزرگترین سرویس پخش موسیقی با میلیون‌ها آهنگ و پادکست',url:'https://spotify.com',category:'رسانه'},
+            {title:'فیگما - طراحی رابط کاربری',description:'ابزار طراحی رابط کاربری با قابلیت همکاری تیمی و پروتوتایپینگ',url:'https://figma.com',category:'طراحی'},
+            {title:'لینکدین - شبکه اجتماعی حرفه‌ای',description:'شبکه اجتماعی برای ارتباطات حرفه‌ای، جستجوی کار و توسعه شغلی',url:'https://linkedin.com',category:'شبکه اجتماعی'},
+            {title:'مدیوم - وبلاگ‌نویسی حرفه‌ای',description:'پلتفرم وبلاگ‌نویسی با محتوای باکیفیت از نویسندگان سراسر دنیا',url:'https://medium.com',category:'مطالعه'},
+            {title:'کورسرا - آموزش آنلاین',description:'دوره‌های آموزشی آنلاین از دانشگاه‌های معتبر دنیا',url:'https://coursera.org',category:'آموزش'},
+            {title:'پینترست - کشف ایده‌های خلاقانه',description:'پلتفرم کشف ایده‌های خلاقانه برای پروژه‌های هنری، دکوراسیون و سبک زندگی',url:'https://pinterest.com',category:'خلاقیت'},
+            {title:'دیوار - خرید و فروش',description:'سرویس خرید و فروش آنلاین کالاهای نو و دست دوم در ایران',url:'https://divar.ir',category:'خرید'},
+            {title:'فرادرس - آموزش تخصصی',description:'بزرگترین مرکز آموزش تخصصی آنلاین در ایران',url:'https://faradars.ir',category:'آموزش'},
+            {title:'جاب‌ویژن - کاریابی آنلاین',description:'پلتفرم کاریابی با بیش از ۵۰۰۰ آگهی استخدام',url:'https://jobvision.ir',category:'کاریابی'},
+            {title:'اسنپ - تاکسی آنلاین',description:'سرویس درخواست خودرو با قیمت‌های رقابتی',url:'https://snapp.ir',category:'حمل و نقل'},
+            {title:'تپسی - تاکسی اینترنتی',description:'سرویس تاکسی اینترنتی با گزینه‌های متنوع',url:'https://tapsi.ir',category:'حمل و نقل'},
+            {title:'دیجی‌کالا - فروشگاه آنلاین',description:'بزرگترین فروشگاه آنلاین ایران با بیش از ۲۰ میلیون محصول',url:'https://digikala.com',category:'خرید'},
+            {title:'کتاب‌راه - خرید کتاب',description:'فروشگاه آنلاین کتاب با بیش از ۵۰۰۰۰ عنوان',url:'https://ketabrah.ir',category:'خرید'},
+            {title:'آپارات - پخش ویدئو',description:'بزرگترین سرویس اشتراک ویدئو در ایران',url:'https://aparat.com',category:'رسانه'},
+            {title:'بازار - مارکت‌پلیس برنامه',description:'مارکت‌پلیس رسمی برنامه‌های اندروید در ایران',url:'https://bazaar.ir',category:'اپلیکیشن'},
+            {title:'اسنپ‌فود - سفارش غذا',description:'سرویس سفارش آنلاین غذا از رستوران‌های معتبر',url:'https://snappfood.ir',category:'خدمات'},
+            {title:'نوبت‌دهی - سامانه نوبت پزشکی',description:'سامانه دریافت نوبت پزشکان متخصص به صورت آنلاین',url:'https://nobatdehi.ir',category:'خدمات'},
+            {title:'بی‌بی‌سی فارسی - اخبار',description:'اخبار و گزارش‌های تحلیلی از بی‌بی‌سی به زبان فارسی',url:'https://bbc.com/persian',category:'اخبار'},
+            {title:'ایران‌اینترنشنال - اخبار',description:'شبکه خبری ایران اینترنشنال با پوشش اخبار ایران و جهان',url:'https://iranintl.com',category:'اخبار'},
+            {title:'رادیو فردا - اخبار',description:'رادیو فردا با پوشش اخبار و برنامه‌های تحلیلی',url:'https://radiofarda.com',category:'اخبار'},
+            {title:'دویچه وله فارسی - اخبار',description:'دویچه وله با پوشش اخبار ایران، افغانستان و جهان',url:'https://dw.com/fa-ir',category:'اخبار'},
+            {title:'یورونیوز فارسی - اخبار',description:'یورونیوز با پوشش اخبار اروپا و جهان به زبان فارسی',url:'https://euronews.com/persian',category:'اخبار'}
+        ];
+        
+        // ===== متغیرهای سراسری =====
+        let currentFilter='all', currentResults=[], suggestionTimeout=null, recognition=null, isRecording=false;
+        
+        // ===== توابع کمکی =====
+        const $=id=>document.getElementById(id);
+        const qs=(sel,ctx=document)=>ctx.querySelector(sel);
+        const qsa=(sel,ctx=document)=>ctx.querySelectorAll(sel);
+        const getHistory=()=>{try{return JSON.parse(localStorage.getItem('aryonHistory')||'[]')}catch{return[]}};
+        const saveHistoryLocal=(query)=>{if(!$('saveHistory').checked)return;let h=getHistory();h=h.filter(i=>i!==query);h.unshift(query);if(h.length>20)h=h.slice(0,20);localStorage.setItem('aryonHistory',JSON.stringify(h));displayHistory()};
+        const getEngine=()=>{const h=qs('input[name="engine1"]:checked'),h2=qs('input[name="engine2"]:checked');return(h||h2||{value:'google'}).value};
+        const getEngineName=v=>({google:'گوگل',bing:'بینگ',aryon:'ARYON'})[v]||v;
+        const getSearchUrl=(e,q)=>({google:`https://www.google.com/search?q=${encodeURIComponent(q)}&igu=1`,bing:`https://www.bing.com/search?q=${encodeURIComponent(q)}`})[e]||`https://www.google.com/search?q=${encodeURIComponent(q)}&igu=1`;
+        const copyToClipboard=t=>{navigator.clipboard?.writeText(t).then(()=>alert('✅ لینک کپی شد!')).catch(()=>{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('✅ لینک کپی شد!')})};
+        const shareResult=(t,u)=>{if(navigator.share)navigator.share({title:t,text:`نتیجه جستجو در ARYON: ${t}`,url:u}).catch(()=>{});else copyToClipboard(u)};
+        const showLoading=()=>$('loadingOverlay').classList.add('show');
+        const hideLoading=()=>$('loadingOverlay').classList.remove('show');
+        
+        // ===== پارتیکل (بهینه شده) =====
+        function setupParticles(){
+            const c=$('particlesCanvas'),ctx=c.getContext('2d');
+            let w,h,particles=[];
+            const resize=()=>{w=c.width=window.innerWidth;h=c.height=window.innerHeight};
+            resize();
+            const init=()=>{particles=Array.from({length:50},()=>({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.6,vy:(Math.random()-.5)*.6,r:Math.random()*2+1,o:Math.random()*.3+.1}))};
+            init();
+            const draw=()=>{ctx.clearRect(0,0,w,h);particles.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${p.o})`;ctx.fill();p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>w)p.vx*=-1;if(p.y<0||p.y>h)p.vy*=-1});requestAnimationFrame(draw)};
+            draw();
+            window.addEventListener('resize',()=>{resize();init()});
+        }
+        
+        // ===== کانفتی =====
+        function launchConfetti(){
+            const c=$('confettiContainer');
+            const colors=['#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#ff6b6b','#ffd93d'];
+            for(let i=0;i<60;i++){
+                const el=document.createElement('div');
+                el.className='confetti';
+                el.style.cssText=`left:${Math.random()*100}%;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};width:${Math.random()*6+4}px;height:${Math.random()*6+4}px;border-radius:${Math.random()>.5?'50%':'0'};animation-duration:${Math.random()*2+2}s;animation-delay:${Math.random()*2}s`;
+                c.appendChild(el);
+                setTimeout(()=>el.remove(),4000);
+            }
+        }
+        
+        // ===== تم =====
+        function setTheme(t){
+            document.body.className='';
+            if(t!=='default')document.body.classList.add(t+'-mode');
+            localStorage.setItem('aryonTheme',t);
+            const toggle=$('themeToggle');
+            toggle.textContent=(t==='dark'||t==='cyberpunk'||t==='neon')?'☀️':'🌙';
+            document.querySelectorAll('.theme-buttons button').forEach(b=>{b.classList.toggle('active-theme',b.textContent.includes({default:'پیش‌فرض',dark:'تاریک',cyberpunk:'سایبرپانک',glass:'شیشه‌ای',neon:'نئون'}[t]||t))});
+        }
+        
+        // ===== ایسترگ =====
+        function checkEasterEgg(q){
+            if(q.toLowerCase()==='aryon secret'||q.toLowerCase()==='تولد آریان'){
+                launchConfetti();
+                document.body.classList.add('party-mode');
+                setTimeout(()=>document.body.classList.remove('party-mode'),5000);
+                return true;
+            }
+            return false;
+        }
+        
+        // ===== تاریخچه =====
+        function displayHistory(){
+            const h=getHistory(),c=$('searchHistory');
+            if(!h.length){c.innerHTML='';c.style.display='none';return}
+            c.style.display='flex';
+            c.innerHTML=h.map(q=>`<span class="history-tag" onclick="searchFromHistory('${q.replace(/'/g,"\\'")}')">🔍 ${q}<span class="remove" onclick="event.stopPropagation();removeHistory('${q.replace(/'/g,"\\'")}')">✕</span></span>`).join('');
+        }
+        function searchFromHistory(q){$('homeSearch').value=q;searchFromHome()}
+        function removeHistory(q){let h=getHistory();h=h.filter(i=>i!==q);localStorage.setItem('aryonHistory',JSON.stringify(h));displayHistory()}
+        function clearHistory(){if(confirm('آیا مطمئنی می‌خوای تاریخچه جستجو رو پاک کنی؟')){localStorage.removeItem('aryonHistory');displayHistory();closeSettings()}}
+        
+        // ===== پیشنهادات =====
+        function searchAryon(q){
+            if(!q||!q.trim())return[];
+            const words=q.trim().toLowerCase().split(/\s+/);
+            return aryonDatabase.filter(i=>words.every(w=>(i.title+i.description+i.category).toLowerCase().includes(w)));
+        }
+        function showSuggestions(q){
+            const c=$('homeSuggestions');
+            if(!q||!q.trim()||!$('showSuggestions').checked){c.classList.remove('show');return}
+            const r=searchAryon(q);
+            if(!r.length){c.classList.remove('show');return}
+            c.innerHTML=r.slice(0,8).map(i=>`<div class="suggestion-item" onclick="selectSuggestion('${i.title.replace(/'/g,"\\'")}')"><span>🔍</span><span>${i.title}</span><span class="category">${i.category}</span></div>`).join('');
+            c.classList.add('show');
+        }
+        function selectSuggestion(q){$('homeSearch').value=q;$('homeSuggestions').classList.remove('show');searchFromHome()}
+        
+        // ===== صوتی =====
+        function setupVoice(){
+            const btn=$('voiceBtn');
+            if(!('webkitSpeechRecognition'in window)&&!('SpeechRecognition'in window)){btn.style.opacity='.4';btn.title='مرورگر شما از جستجوی صوتی پشتیبانی نمی‌کند';return}
+            btn.onclick=function(){
+                if(isRecording){recognition?.stop();return}
+                const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+                recognition=new SR();
+                recognition.lang='fa-IR';
+                recognition.continuous=false;
+                recognition.interimResults=true;
+                recognition.onstart=()=>{isRecording=true;btn.classList.add('recording');btn.textContent='⏹️'};
+                recognition.onresult=e=>{
+                    const t=e.results[0][0].transcript;
+                    $('homeSearch').value=t;
+                    if(e.results[0].isFinal){btn.classList.remove('recording');btn.textContent='🎤';isRecording=false;searchFromHome()}
+                };
+                recognition.onerror=()=>{btn.classList.remove('recording');btn.textContent='🎤';isRecording=false;alert('⚠️ خطا در تشخیص صدا')};
+                recognition.onend=()=>{btn.classList.remove('recording');btn.textContent='🎤';isRecording=false};
+                recognition.start();
+            };
+        }
+        
+        // ===== نمایش نتایج ARYON =====
+        function displayAryonResults(q,filter='all'){
+            currentResults=searchAryon(q);currentFilter=filter;
+            const list=$('aryonResultsList'),count=$('aryonResultCount'),qDisplay=$('aryonQueryDisplay');
+            qDisplay.textContent=q;
+            let filtered=filter==='all'?currentResults:currentResults.filter(i=>i.category===filter);
+            const cats=['همه',...new Set(aryonDatabase.map(i=>i.category))];
+            const filterHTML=cats.map(c=>`<button data-filter="${c}" ${c===filter?'class="active"':''}>${c==='همه'?'همه':c}</button>`).join('');
+            if(!filtered.length){
+                list.innerHTML=`<div class="no-results glass" style="padding:30px"><span class="big-icon">🔍</span><h3>نتیجه‌ای پیدا نشد!</h3><p>متاسفانه برای "<strong>${q}</strong>" نتیجه‌ای در دیتابیس ARYON وجود ندارد.</p><p style="margin-top:10px;font-size:12px">💡 پیشنهاد: از موتورهای گوگل یا بینگ استفاده کنید.</p></div>`;
+                count.innerHTML=`<span>🔍 نمایش نتایج برای: <strong>"${q}"</strong> (${filtered.length} نتیجه)</span><div class="filter-buttons" id="filterButtons">${filterHTML}</div>`;
+                setupFilterButtons();
+                return;
+            }
+            count.innerHTML=`<span>🔍 نمایش نتایج برای: <strong>"${q}"</strong> (${filtered.length} نتیجه)</span><div class="filter-buttons" id="filterButtons">${filterHTML}</div>`;
+            list.innerHTML=filtered.map((i,idx)=>`<div class="result-item" data-index="${idx}"><h3 onclick="window.open('${i.url}','_blank')">${i.title}</h3><p>${i.description}</p><span class="url">🔗 ${i.url}</span><span class="category-tag">📁 ${i.category}</span><div class="result-actions"><button onclick="window.open('${i.url}','_blank')">🔗 باز کردن</button><button onclick="copyToClipboard('${i.url}')">📋 کپی لینک</button><button onclick="shareResult('${i.title.replace(/'/g,"\\'")}','${i.url}')">📤 اشتراک</button></div></div>`).join('');
+            setupFilterButtons();
+        }
+        function setupFilterButtons(){
+            const container=$('filterButtons');
+            if(!container)return;
+            const clone=container.cloneNode(true);
+            container.parentNode.replaceChild(clone,container);
+            clone.querySelectorAll('button').forEach(b=>{b.onclick=function(){const f=this.dataset.filter;const q=$('aryonQueryDisplay').textContent;clone.querySelectorAll('button').forEach(bb=>bb.classList.remove('active'));this.classList.add('active');displayAryonResults(q,f)}});
+        }
+        
+        // ===== جستجوی اصلی =====
+        function performSearch(q,isBrowser=false){
+            if(!q||!q.trim())return;
+            q=q.trim();
+            if(checkEasterEgg(q))return;
+            saveHistoryLocal(q);
+            if(isBrowser){
+                let url=q;
+                if(!url.startsWith('http://')&&!url.startsWith('https://'))url='https://'+url;
+                try{new URL(url)}catch(e){alert('❌ آدرس نامعتبر');return}
+                $('loadingEngine').textContent='مرورگر ARYON';
+                $('loadingQuery').textContent=`"${q}"`;
+                showLoading();
+                $('home').classList.add('hidden');
+                $('header').classList.add('show');
+                $('aryonResults').classList.remove('show');
+                $('resultsWrapper').classList.add('show');
+                $('headerSearch').value=q;
+                const iframe=$('resultsFrame'),aryon=$('aryonResults');
+                aryon.classList.remove('show');
+                const loadHandler=()=>{hideLoading();iframe.removeEventListener('load',loadHandler);iframe.removeEventListener('error',errorHandler)};
+                const errorHandler=()=>{hideLoading();alert('❌ آدرس نامعتبر یا غیرقابل دسترس');iframe.removeEventListener('load',loadHandler);iframe.removeEventListener('error',errorHandler)};
+                iframe.addEventListener('load',loadHandler);
+                iframe.addEventListener('error',errorHandler);
+                setTimeout(()=>{iframe.src=url},200);
+                setTimeout(hideLoading,7000);
+                return;
+            }
+            const engine=getEngine();
+            $('loadingEngine').textContent=getEngineName(engine);
+            $('loadingQuery').textContent=`"${q}"`;
+            showLoading();
+            if(engine==='aryon'){
+                $('home').classList.add('hidden');
+                $('header').classList.add('show');
+                $('resultsWrapper').classList.remove('show');
+                $('aryonResults').classList.add('show');
+                $('headerSearch').value=q;
+                $('homeSuggestions').classList.remove('show');
+                displayAryonResults(q,'all');
+                setTimeout(hideLoading,300);
+                return;
+            }
+            const url=getSearchUrl(engine,q);
+            $('home').classList.add('hidden');
+            $('header').classList.add('show');
+            $('aryonResults').classList.remove('show');
+            $('resultsWrapper').classList.add('show');
+            $('headerSearch').value=q;
+            const iframe=$('resultsFrame'),aryon=$('aryonResults');
+            aryon.classList.remove('show');
+            const loadHandler=()=>{hideLoading();iframe.removeEventListener('load',loadHandler);iframe.removeEventListener('error',errorHandler)};
+            const errorHandler=()=>{hideLoading();alert('❌ خطا در بارگذاری نتایج');iframe.removeEventListener('load',loadHandler);iframe.removeEventListener('error',errorHandler)};
+            iframe.addEventListener('load',loadHandler);
+            iframe.addEventListener('error',errorHandler);
+            setTimeout(()=>{iframe.src=url},200);
+            setTimeout(hideLoading,7000);
+        }
+        function searchFromHome(){performSearch($('homeSearch').value)}
+        function searchFromHeader(){performSearch($('headerSearch').value)}
+        function luckySearch(){if(!aryonDatabase.length){alert('دیتابیس خالی است!');return}const r=aryonDatabase[Math.floor(Math.random()*aryonDatabase.length)];$('homeSearch').value=r.title;searchFromHome()}
+        function searchTrending(q){$('homeSearch').value=q;searchFromHome()}
+        function goHome(){
+            $('home').classList.remove('hidden');
+            $('header').classList.remove('show');
+            $('resultsWrapper').classList.remove('show');
+            $('aryonResults').classList.remove('show');
+            $('resultsFrame').src='about:blank';
+            $('homeSearch').value='';
+            $('headerSearch').value='';
+            $('homeSuggestions').classList.remove('show');
+            $('backToTop').classList.remove('show');
+        }
+        function scrollToTop(){
+            const r=$('aryonResults');
+            if(r.classList.contains('show'))r.scrollTo({top:0,behavior:'smooth'});
+            else window.scrollTo({top:0,behavior:'smooth'});
+        }
+        
+        // ===== همگام‌سازی موتورها =====
+        function syncEngines(source){
+            const h=qs('input[name="engine1"]:checked'),h2=qs('input[name="engine2"]:checked');
+            const val=(source==='home'?h:h2)?.value;
+            if(val){
+                (source==='home'?qsa('input[name="engine2"]'):qsa('input[name="engine1"]')).forEach(r=>r.checked=(r.value===val));
+            }
+            document.querySelectorAll('.engine-selector label').forEach(l=>{const r=l.querySelector('input[type="radio"]');l.classList.toggle('active',r&&r.checked)});
+        }
+        
+        // ===== تنظیمات =====
+        function toggleSettings(){$('settingsModal').classList.toggle('show')}
+        function closeSettings(){$('settingsModal').classList.remove('show')}
+        function exportData(){
+            const data={database:aryonDatabase,history:getHistory(),version:'5.1',exportedAt:new Date().toISOString()};
+            const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+            const a=document.createElement('a');
+            a.href=URL.createObjectURL(blob);
+            a.download=`aryon-data-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+        function importData(){$('fileInput').click()}
+        function importDataFromFile(e){
+            const file=e.target.files[0];
+            if(!file)return;
+            const reader=new FileReader();
+            reader.onload=ev=>{
+                try{
+                    const data=JSON.parse(ev.target.result);
+                    if(!data.database||!Array.isArray(data.database))throw new Error('ساختار فایل نامعتبر است');
+                    let count=0;
+                    data.database.forEach(item=>{
+                        if(item.title&&item.url&&!aryonDatabase.some(ex=>ex.url===item.url)){
+                            aryonDatabase.push({title:item.title,description:item.description||'',url:item.url,category:item.category||'سایر'});
+                            count++;
+                        }
+                    });
+                    alert(`✅ ${count} سایت به دیتابیس اضافه شد!`);
+                    if(data.history&&Array.isArray(data.history)){localStorage.setItem('aryonHistory',JSON.stringify(data.history));displayHistory()}
+                }catch(err){alert('❌ خطا در خواندن فایل: '+err.message)}
+            };
+            reader.readAsText(file);
+            e.target.value='';
+        }
+        
+        // ===== رویدادها =====
+        document.addEventListener('DOMContentLoaded',function(){
+            setupParticles();
+            const savedTheme=localStorage.getItem('aryonTheme')||'default';
+            setTheme(savedTheme);
+            const savedHistory=localStorage.getItem('aryonSaveHistory');
+            if(savedHistory!==null)$('saveHistory').checked=savedHistory==='true';
+            $('homeSearch').focus();
+            syncEngines('home');
+            displayHistory();
+            setupVoice();
+            
+            // رویدادهای ورودی
+            $('homeSearch').addEventListener('keyup',function(e){
+                clearTimeout(suggestionTimeout);
+                if(e.key==='Enter'){$('homeSuggestions').classList.remove('show');searchFromHome()}
+                else suggestionTimeout=setTimeout(()=>showSuggestions(this.value),200);
+            });
+            $('headerSearch').addEventListener('keyup',e=>{if(e.key==='Enter')searchFromHeader()});
+            document.addEventListener('click',e=>{if(!e.target.closest('.search-container')&&!e.target.closest('.search-box'))$('homeSuggestions').classList.remove('show')});
+            document.addEventListener('keydown',e=>{if(e.key==='Escape')document.body.classList.toggle('focus-mode')});
+            
+            // دکمه‌ها
+            $('homeBtn').addEventListener('click',goHome);
+            $('backHomeBtn').addEventListener('click',goHome);
+            $('browserBtn').addEventListener('click',function(){const q=prompt('🌐 آدرس وبسایت یا کلمه مورد نظر را وارد کنید:','https://');if(q&&q.trim())performSearch(q,!0)});
+            $('themeToggle').addEventListener('click',function(){
+                if(document.body.classList.contains('dark-mode')||document.body.classList.contains('cyberpunk')||document.body.classList.contains('neon'))setTheme('default');
+                else setTheme('dark');
+            });
+            $('saveHistory').addEventListener('change',function(){localStorage.setItem('aryonSaveHistory',this.checked)});
+            $('showSuggestions').addEventListener('change',function(){localStorage.setItem('aryonShowSuggestions',this.checked)});
+            
+            // همگام‌سازی موتورها
+            qsa('input[name="engine1"]').forEach(r=>r.addEventListener('change',()=>syncEngines('home')));
+            qsa('input[name="engine2"]').forEach(r=>r.addEventListener('change',()=>syncEngines('header')));
+            
+            // دکمه بازگشت به بالا
+            const aryonResults=$('aryonResults');
+            aryonResults.addEventListener('scroll',function(){const btn=$('backToTop');btn.classList.toggle('show',this.scrollTop>300)});
+            window.addEventListener('scroll',function(){const btn=$('backToTop');if($('resultsWrapper').classList.contains('show'))btn.classList.toggle('show',window.scrollY>300)});
+            
+            console.log('🚀 ARYON v5.1 - نسخه خاص و خفن!');
+            console.log('💻 ساخته شده توسط آریان');
+            console.log(`📚 دیتابیس ARYON شامل ${aryonDatabase.length} وب‌سایت`);
+            console.log('📧 ارتباط با ما: aryon.iran@gmail.com');
+        });
+    </script>
+</body>
+</html>
